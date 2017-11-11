@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.8)
+project(text_editor)
+
+set(CMAKE_C_STANDARD 11)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
+set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/lib)
+
+link_libraries(ncurses)
+
+add_subdirectory(src)
