@@ -4,6 +4,6 @@
 
 #include "core/core.h"
 
-int main() {
-    core_te();
+int main(int argc, char** argv) {
+    core_te(argc, argv);
 }
