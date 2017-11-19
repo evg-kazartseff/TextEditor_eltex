@@ -4,7 +4,7 @@
 
 #include "IOfile.h"
 
-FILE *open_file(const char *filename) {
+FILE* open_file(const char *filename) {
     return fopen(filename, "w+t");
 }
 

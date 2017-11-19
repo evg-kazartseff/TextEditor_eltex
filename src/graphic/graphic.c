@@ -48,20 +48,28 @@ WINDOW *text_window(WINDOW* BottomP) {
 }
 
 WINDOW* edit_window(WINDOW* TextWindow) {
-    return subwin(TextWindow, TextWindow->_maxy - 1, TextWindow->_maxx - 1,
+    WINDOW* win = subwin(TextWindow, TextWindow->_maxy - 1, TextWindow->_maxx - 1,
                   TextWindow->_begy + 1, TextWindow->_begx + 1);
+    wrefresh(win);
+    return win;
 }
 
 WINDOW* open_file_window(WINDOW* TextWindow) {
-    int k = 2;
-    int j = 3;
-    WINDOW* win = subwin(TextWindow, TextWindow->_maxy / k,
+    int k = 4;
+    int j = 2;
+    WINDOW* win = newwin(TextWindow->_maxy / k >= 7 ? TextWindow->_maxy / k : 7,
                          TextWindow->_maxx / j,
                          TextWindow->_maxy / 2 - TextWindow->_maxy / (2 * k),
                          TextWindow->_maxx / 2 - TextWindow->_maxx / (2 * j));
     box(win, ACS_VLINE, ACS_HLINE);
-    init_pair(2, COLOR_BLACK, COLOR_MAGENTA);
+    init_pair(2, COLOR_BLACK, COLOR_GREEN);
     wbkgd(win, COLOR_PAIR(2));
+    mvwhline(win, 2, 1, ACS_HLINE, win->_maxx - 1);
+    mvwprintw(win,1, win->_maxx / 2 - 8, "Enter file name!");
+    WINDOW* sub = subwin(win, 3, win->_maxx - 5, win->_begy + 3, win->_begx + 3);
+    box(sub, ACS_VLINE, ACS_HLINE);
+    wmove(win, 4, 4);
+    refresh();
     return win;
 }
 

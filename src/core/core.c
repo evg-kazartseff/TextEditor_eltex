@@ -4,8 +4,13 @@
 
 #include "core.h"
 
+typedef struct _PANEL_DATA {
+    int hide;
+}PANEL_DATA;
+
 int core_te(int argc, char **argv) {
     init_graphic();
+    cbreak();
     int maxx = getmaxx(stdscr);
     int maxy = getmaxy(stdscr);
     if ((maxx < 50) || (maxy < 6)) {
@@ -17,46 +22,49 @@ int core_te(int argc, char **argv) {
     WINDOW* EditWindow = edit_window(TextWindow);
     FILE* file;
     char* text = NULL;
+    char *name = NULL;
     if (argc == 2) {
         file = fopen(argv[1], "r");
         print_name_file(TextWindow, argv[1]);
+        name = argv[1];
         text = read_file(file);
         fclose(file);
         move(1, 1);
         wprintw(EditWindow, text);
     }
     refresh();
-    handler(EditWindow, argv[1], text);
-    finalize_graphic();
-}
 
-void handler(WINDOW* EditWindow, const char* file, char* text) {
     int key;
-    noecho();
     volatile int x, y;
-    keypad(stdscr, 1);
-    raw();
+    noecho();
+    keypad(stdscr, TRUE);
     wmove(EditWindow, 0, 0);
+    WINDOW* OpenFW;
+    PANEL* OpenFP;
+    OpenFW = open_file_window(EditWindow);
+    OpenFP = open_file_panel(OpenFW);
+    hide_panel(OpenFP);
+    update_panels();
+    doupdate();
+    PANEL_DATA panel_data;
+    PANEL_DATA *temp;
+    panel_data.hide = TRUE;
+    set_panel_userptr(OpenFP, &panel_data);
     do {
         x = getcurx(EditWindow);
         y = getcury(EditWindow);
         key = getch();
         switch (key) {
             case KEY_F(1):
-                if (text != NULL)
-                    free(text);
-                WINDOW* OpenFW = open_file_window(EditWindow);
-                PANEL* OpenFP = open_file_panel(OpenFW);
-                show_panel(OpenFP);
-                update_panels();
-                doupdate();
-                getch();
-                hide_panel(OpenFP);
-                update_panels();
-                doupdate();
-                del_panel(OpenFP);
-                delwin(OpenFW);
-                refresh();
+                temp = (PANEL_DATA *)panel_userptr(OpenFP);
+                if(temp->hide == FALSE) {
+                    hide_panel(OpenFP);
+                    temp->hide = TRUE;
+                }
+                else {
+                    show_panel(OpenFP);
+                    temp->hide = FALSE;
+                }
                 break;
             case KEY_UP:
                 move_up(EditWindow, &x, &y);
@@ -71,7 +79,18 @@ void handler(WINDOW* EditWindow, const char* file, char* text) {
                 move_rigt(EditWindow, &x, &y);
                 break;
             case KEY_F(2):
-
+                if (text != NULL)
+                    free(text);
+                if (name != NULL) {
+                    unsigned int xmax = (unsigned int) getmaxx(EditWindow);
+                    unsigned int ymax = (unsigned int) getmaxy(EditWindow);
+                    text = calloc((xmax * ymax), sizeof(char));
+                    mvwinstr(EditWindow, 0, 0, text);
+                    FILE* wr = fopen(name, "w");
+                    fprintf(wr, "%s", text);
+                    fflush(wr);
+                    fclose(wr);
+                }
                 break;
             case KEY_F(3):
                 if (text != NULL)
@@ -98,7 +117,29 @@ void handler(WINDOW* EditWindow, const char* file, char* text) {
         }
         wmove(EditWindow, y, x);
         wrefresh(EditWindow);
+        if (key == KEY_F(1)) {
+            update_panels();
+            doupdate();
+            if (panel_data.hide == FALSE) {
+                name = get_name_file(OpenFW);
+                hide_panel(OpenFP);
+                panel_data.hide = TRUE;
+                file = fopen(name, "r");
+                if (file != NULL) {
+                    print_name_file(TextWindow, name);
+                    text = read_file(file);
+                    fclose(file);
+                    mvwprintw(EditWindow, 0, 0, text);
+                    wrefresh(EditWindow);
+                }
+                else {
+                    move(EditWindow->_maxy, EditWindow->_maxx / 2 - 8);
+                    print_name_file(TextWindow, "Can't open file");
+                }
+            }
+        }
     } while (key != KEY_F(3));
+    finalize_graphic();
 }
 
 void move_up(WINDOW* Win, const volatile int* x, volatile int* y) {
@@ -127,4 +168,12 @@ bool print_symbol(int key) {
     if (key >= 32 && key <= 126)
         return true;
     return false;
+}
+
+char* get_name_file(WINDOW* win) {
+    char *name = calloc(256, sizeof(char));
+    echo();
+    mvwgetstr(win, 4, 4, name);
+    noecho();
+    return name;
 }
